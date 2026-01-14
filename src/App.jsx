@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ethers } from 'ethers';
+import logo from './assets/logo.png'; 
 import './App.css';
 import { CopyToClipboard } from 'react-copy-to-clipboard';
 
@@ -462,20 +463,33 @@ const App = () => {
     <div className="App">
       <header className="App-header">
         <div className="header-left">
-          <h1>Robusta Token Dashboard</h1>
+          {/* Logo dan Title */}
+          <div className="logo-title-container">
+            <div className="logo-wrapper">
+              <img src={logo} alt="Robusta Token Logo" className="logo" />
+              <div className="logo-glow"></div>
+            </div>
+            <div className="title-container">
+              <h1>Robusta Token Dashboard</h1>
+              <p className="subtitle">Secure & Efficient Token Platform</p>
+            </div>
+          </div>
+          
           <p className="contract-address">
             Contract: {CONTRACT_ADDRESS.substring(0, 10)}...{CONTRACT_ADDRESS.substring(CONTRACT_ADDRESS.length - 8)}
-            <CopyToClipboard text={CONTRACT_ADDRESS} onCopy={() => handleCopyAddress('contract')}>
-              <button className="copy-btn small">
-                <FiCopy /> Copy
-              </button>
-            </CopyToClipboard>
+            <button 
+              onClick={() => handleCopyAddress(CONTRACT_ADDRESS)} 
+              className="copy-btn small"
+            >
+              <FiCopy /> Copy
+            </button>
           </p>
         </div>
         
         <div className="wallet-section">
           {!account ? (
             <button onClick={connectWallet} className="connect-btn">
+              <span className="wallet-icon">🔗</span>
               Connect Wallet
             </button>
           ) : (
@@ -485,14 +499,16 @@ const App = () => {
               </div>
               <p className="account-address">
                 {account.substring(0, 6)}...{account.substring(account.length - 4)}
-                <CopyToClipboard text={account} onCopy={() => handleCopyAddress(account)}>
-                  <button className="copy-btn">
-                    <FiCopy />
-                  </button>
-                </CopyToClipboard>
+                <button 
+                  onClick={() => handleCopyAddress(account)} 
+                  className="copy-btn"
+                >
+                  <FiCopy />
+                </button>
                 {copiedAddress === account && <span className="copied-text">Copied!</span>}
               </p>
               <p className="token-balance">
+                <span className="balance-icon">💰</span>
                 Balance: <span className="balance-amount">{formatBalance(balance, 4)}</span> TR
               </p>
             </div>

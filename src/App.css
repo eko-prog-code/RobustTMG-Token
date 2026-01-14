@@ -9,6 +9,7 @@ body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background: #f5f7fa;
   color: #333;
+  overflow-x: hidden;
 }
 
 .App {
@@ -16,37 +17,138 @@ body {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
-/* Header Styles */
+/* ==============================
+   HEADER DENGAN LOGO
+   ============================== */
 .App-header {
-  background: rgba(255, 255, 255, 0.95);
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
   backdrop-filter: blur(10px);
   padding: 20px 40px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 2px solid rgba(102, 126, 234, 0.2);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  border-bottom: 3px solid rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+  position: relative;
+  z-index: 100;
 }
 
-.header-left h1 {
-  color: #333;
+/* Logo dan Title Container */
+.header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.logo-title-container {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.logo-wrapper {
+  position: relative;
+  width: 60px;
+  height: 60px;
+}
+
+.logo {
+  width: 100%;
+  height: 100%;
+  border-radius: 15px;
+  padding: 6px;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+  border: 2px solid rgba(102, 126, 234, 0.3);
+  box-shadow: 
+    0 8px 32px rgba(102, 126, 234, 0.2),
+    inset 0 0 20px rgba(255, 255, 255, 0.05);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  position: relative;
+  z-index: 2;
+}
+
+.logo:hover {
+  transform: scale(1.1) rotate(5deg);
+  border-color: rgba(102, 126, 234, 0.6);
+  box-shadow: 
+    0 12px 40px rgba(102, 126, 234, 0.4),
+    inset 0 0 30px rgba(255, 255, 255, 0.1);
+}
+
+.logo-glow {
+  position: absolute;
+  top: -5px;
+  left: -5px;
+  right: -5px;
+  bottom: -5px;
+  background: linear-gradient(45deg, #667eea, #764ba2, #2196F3, #21CBF3);
+  border-radius: 20px;
+  z-index: 1;
+  opacity: 0;
+  filter: blur(10px);
+  transition: opacity 0.4s ease;
+}
+
+.logo-wrapper:hover .logo-glow {
+  opacity: 0.6;
+  animation: rotate 3s linear infinite;
+}
+
+@keyframes rotate {
+  0% {
+    filter: hue-rotate(0deg) blur(10px);
+  }
+  100% {
+    filter: hue-rotate(360deg) blur(10px);
+  }
+}
+
+/* Title Container */
+.title-container h1 {
+  color: white;
   font-size: 28px;
-  margin-bottom: 8px;
-  background: linear-gradient(45deg, #667eea, #764ba2);
+  margin: 0 0 5px 0;
+  background: linear-gradient(45deg, #667eea, #ffffff);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  text-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
+  font-weight: 800;
+  letter-spacing: -0.5px;
 }
 
+.subtitle {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+  margin: 0;
+  font-weight: 500;
+  letter-spacing: 1px;
+}
+
+/* Contract Address */
 .contract-address {
-  color: #666;
+  color: rgba(255, 255, 255, 0.9);
   font-size: 14px;
   display: flex;
   align-items: center;
   gap: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 10px 18px;
+  border-radius: 25px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  max-width: fit-content;
+  transition: all 0.3s ease;
 }
 
-/* Wallet Section */
+.contract-address:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(102, 126, 234, 0.4);
+}
+
+/* ==============================
+   WALLET SECTION
+   ============================== */
 .wallet-section {
   display: flex;
   align-items: center;
@@ -57,27 +159,47 @@ body {
   background: linear-gradient(45deg, #2196F3, #21CBF3);
   color: white;
   border: none;
-  padding: 12px 28px;
+  padding: 14px 30px;
   border-radius: 25px;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3);
+  box-shadow: 0 6px 20px rgba(33, 150, 243, 0.4);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.15);
 }
 
 .connect-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(33, 150, 243, 0.4);
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px rgba(33, 150, 243, 0.6);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
+.wallet-icon {
+  font-size: 18px;
+  opacity: 0.9;
+}
+
+/* Account Info */
 .account-info {
   text-align: right;
-  padding: 15px 20px;
-  background: white;
-  border-radius: 15px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  padding: 18px 22px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   min-width: 280px;
+  transition: all 0.3s ease;
+}
+
+.account-info:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(102, 126, 234, 0.3);
+  transform: translateY(-2px);
 }
 
 .status-badge {
@@ -89,7 +211,8 @@ body {
   font-weight: bold;
   font-size: 14px;
   margin-bottom: 12px;
-  box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
+  box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+  border: 2px solid rgba(255, 255, 255, 0.2);
 }
 
 .account-address {
@@ -98,32 +221,42 @@ body {
   gap: 10px;
   margin: 8px 0;
   font-size: 16px;
-  color: #333;
+  color: white;
   font-weight: 500;
+  justify-content: flex-end;
 }
 
 .token-balance {
   margin: 8px 0 0;
   font-size: 20px;
   font-weight: bold;
-  color: #2196F3;
+  color: #4CAF50;
   display: flex;
   align-items: center;
   gap: 8px;
+  justify-content: flex-end;
+}
+
+.balance-icon {
+  font-size: 18px;
+  opacity: 0.9;
 }
 
 .balance-amount {
   font-size: 24px;
-  background: linear-gradient(45deg, #667eea, #764ba2);
+  background: linear-gradient(45deg, #4CAF50, #8BC34A);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  text-shadow: 0 2px 10px rgba(76, 175, 80, 0.3);
 }
 
-/* Copy Button Styles */
+/* ==============================
+   COPY BUTTON STYLES
+   ============================== */
 .copy-btn {
-  background: #f0f0f0;
-  border: 1px solid #ddd;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 8px;
   padding: 6px 12px;
   cursor: pointer;
@@ -131,34 +264,20 @@ body {
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: #666;
+  color: white;
   transition: all 0.2s;
+  backdrop-filter: blur(5px);
 }
 
 .copy-btn:hover {
-  background: #e0e0e0;
+  background: rgba(102, 126, 234, 0.3);
   border-color: #667eea;
-  color: #667eea;
+  color: white;
 }
 
 .copy-btn.small {
-  padding: 4px 8px;
-  font-size: 11px;
-}
-
-.icon-btn.copy {
-  background: none;
-  border: none;
-  padding: 8px;
-  border-radius: 6px;
-  cursor: pointer;
-  color: #666;
-  position: relative;
-}
-
-.icon-btn.copy:hover {
-  background: #f0f0f0;
-  color: #667eea;
+  padding: 5px 12px;
+  font-size: 12px;
 }
 
 .copied-text {
@@ -194,11 +313,15 @@ body {
   border-color: #333 transparent transparent transparent;
 }
 
-/* Main Content */
+/* ==============================
+   MAIN CONTENT
+   ============================== */
 .App-main {
   max-width: 1200px;
   margin: 0 auto;
   padding: 30px 20px;
+  position: relative;
+  z-index: 1;
 }
 
 section {
@@ -219,43 +342,161 @@ h2 {
   border-bottom: 2px solid #667eea;
 }
 
-/* Token Info Section */
+/* ==============================
+   TOKEN INFO SECTION - HORIZONTAL SCROLL MOBILE
+   ============================== */
+.token-info {
+  position: relative;
+  overflow: hidden;
+}
+
+.token-info h2 {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.scroll-indicator {
+  display: none;
+  font-size: 12px;
+  color: #667eea;
+  background: rgba(102, 126, 234, 0.1);
+  padding: 4px 8px;
+  border-radius: 12px;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
 .info-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 20px;
   margin-top: 20px;
 }
 
+/* Info Card Icons */
+.info-icon {
+  font-size: 16px;
+  opacity: 0.9;
+}
+
+/* Card gradient variations */
+.info-card:nth-child(1) {
+  background: linear-gradient(135deg, #667eea 0%, #2196F3 100%);
+}
+
+.info-card:nth-child(2) {
+  background: linear-gradient(135deg, #764ba2 0%, #9C27B0 100%);
+}
+
+.info-card:nth-child(3) {
+  background: linear-gradient(135deg, #4CAF50 0%, #8BC34A 100%);
+}
+
+.info-card:nth-child(4) {
+  background: linear-gradient(135deg, #FF9800 0%, #FF5722 100%);
+}
+
 .info-card {
-  background: linear-gradient(135deg, #667eea, #764ba2);
   color: white;
   padding: 25px 20px;
   border-radius: 15px;
   text-align: center;
   transition: transform 0.3s ease;
+  position: relative;
+  overflow: hidden;
 }
 
 .info-card:hover {
   transform: translateY(-5px);
 }
 
+.info-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #667eea, #764ba2);
+  border-radius: 15px 15px 0 0;
+}
+
+.info-card:nth-child(1)::before {
+  background: linear-gradient(90deg, #667eea, #2196F3);
+}
+
+.info-card:nth-child(2)::before {
+  background: linear-gradient(90deg, #764ba2, #9C27B0);
+}
+
+.info-card:nth-child(3)::before {
+  background: linear-gradient(90deg, #4CAF50, #8BC34A);
+}
+
+.info-card:nth-child(4)::before {
+  background: linear-gradient(90deg, #FF9800, #FF5722);
+}
+
 .info-card h3 {
   margin-top: 0;
   font-size: 14px;
-  opacity: 0.9;
+  opacity: 0.95;
   text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-bottom: 10px;
+  letter-spacing: 0.5px;
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
 }
 
 .info-card p {
   margin: 0;
-  font-size: 22px;
-  font-weight: bold;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  line-height: 1.2;
 }
 
-/* Transfer Section */
+/* Desktop hover effects */
+@media (min-width: 1025px) {
+  .info-card {
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+  
+  .info-card:hover {
+    transform: translateY(-8px) scale(1.02);
+  }
+  
+  .info-card::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.2),
+      transparent
+    );
+    transition: left 0.7s;
+  }
+  
+  .info-card:hover::after {
+    left: 100%;
+  }
+}
+
+/* ==============================
+   TRANSFER SECTION
+   ============================== */
 .transfer-form {
   max-width: 600px;
   margin: 0 auto;
@@ -333,7 +574,9 @@ h2 {
   border-left: 4px solid #FF9800;
 }
 
-/* Holders Section */
+/* ==============================
+   HOLDERS SECTION
+   ============================== */
 .section-header {
   display: flex;
   justify-content: space-between;
@@ -427,7 +670,7 @@ h2 {
   to { transform: rotate(360deg); }
 }
 
-/* Table Styles */
+/* Table Container */
 .table-container {
   overflow-x: auto;
   margin: 20px 0;
@@ -534,7 +777,24 @@ h2 {
   text-align: center;
 }
 
-/* Loading Styles */
+.icon-btn.copy {
+  background: none;
+  border: none;
+  padding: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #666;
+  position: relative;
+}
+
+.icon-btn.copy:hover {
+  background: #f0f0f0;
+  color: #667eea;
+}
+
+/* ==============================
+   LOADING STYLES
+   ============================== */
 .loading-container {
   text-align: center;
   padding: 60px 20px;
@@ -556,7 +816,9 @@ h2 {
   font-size: 16px;
 }
 
-/* No Data Styles */
+/* ==============================
+   NO DATA STYLES
+   ============================== */
 .no-data {
   text-align: center;
   padding: 60px 20px;
@@ -585,7 +847,9 @@ h2 {
   color: #667eea;
 }
 
-/* Show More Button */
+/* ==============================
+   SHOW MORE BUTTON
+   ============================== */
 .show-more {
   text-align: center;
   margin-top: 30px;
@@ -610,7 +874,9 @@ h2 {
   box-shadow: 0 6px 20px rgba(33, 150, 243, 0.3);
 }
 
-/* Holders Note */
+/* ==============================
+   HOLDERS NOTE
+   ============================== */
 .holders-note {
   margin-top: 25px;
   padding: 15px;
@@ -628,7 +894,9 @@ h2 {
   gap: 8px;
 }
 
-/* Owner Section */
+/* ==============================
+   OWNER SECTION
+   ============================== */
 .owner-controls {
   display: flex;
   gap: 15px;
@@ -660,7 +928,9 @@ h2 {
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
 }
 
-/* Footer */
+/* ==============================
+   FOOTER
+   ============================== */
 .App-footer {
   text-align: center;
   color: white;
@@ -683,25 +953,204 @@ h2 {
   color: rgba(255, 255, 255, 0.8);
 }
 
-/* Animations */
+/* ==============================
+   ANIMATIONS
+   ============================== */
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
 }
 
-/* Responsive Design */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.logo {
+  animation: float 5s ease-in-out infinite;
+}
+
+/* ==============================
+   RESPONSIVE DESIGN
+   ============================== */
+
+/* Tablet Styles (769px - 1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .App-header {
+    padding: 18px 30px;
+  }
+  
+  .logo-wrapper {
+    width: 55px;
+    height: 55px;
+  }
+  
+  .title-container h1 {
+    font-size: 24px;
+  }
+  
+  .subtitle {
+    font-size: 13px;
+  }
+  
+  .contract-address {
+    font-size: 13px;
+  }
+  
+  .info-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .info-card {
+    padding: 25px;
+  }
+  
+  .info-card p {
+    font-size: 22px;
+  }
+}
+
+/* Mobile Styles (≤ 768px) */
 @media (max-width: 768px) {
+  /* Header Mobile */
   .App-header {
     flex-direction: column;
-    text-align: center;
     gap: 20px;
-    padding: 20px;
+    padding: 15px;
+    text-align: center;
   }
   
   .header-left {
-    text-align: center;
+    width: 100%;
+    align-items: center;
   }
   
+  .logo-title-container {
+    justify-content: center;
+    width: 100%;
+  }
+  
+  .contract-address {
+    justify-content: center;
+    margin: 10px auto 0;
+    font-size: 12px;
+    padding: 8px 15px;
+    flex-wrap: wrap;
+  }
+  
+  .wallet-section {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .account-info {
+    width: 100%;
+    min-width: auto;
+    text-align: center;
+    padding: 15px;
+  }
+  
+  .account-address {
+    justify-content: center;
+  }
+  
+  .token-balance {
+    justify-content: center;
+  }
+  
+  .connect-btn {
+    width: 100%;
+    max-width: 300px;
+    justify-content: center;
+    padding: 12px 25px;
+  }
+  
+  /* Token Info Mobile - Horizontal Scroll */
+  .token-info h2 {
+    margin-bottom: 15px;
+  }
+  
+  .scroll-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  
+  .scroll-indicator::after {
+    content: '← →';
+    font-weight: bold;
+    animation: scrollHint 1.5s infinite;
+  }
+  
+  @keyframes scrollHint {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(5px); }
+  }
+  
+  .info-grid {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 15px;
+    padding: 10px 5px 20px;
+    margin: 0 -5px;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: #667eea #f0f0f0;
+    scroll-behavior: smooth;
+  }
+  
+  .info-grid::-webkit-scrollbar {
+    height: 6px;
+  }
+  
+  .info-grid::-webkit-scrollbar-track {
+    background: #f0f0f0;
+    border-radius: 10px;
+  }
+  
+  .info-grid::-webkit-scrollbar-thumb {
+    background: linear-gradient(45deg, #667eea, #764ba2);
+    border-radius: 10px;
+  }
+  
+  .info-card {
+    flex: 0 0 calc(85% - 10px);
+    min-width: 280px;
+    scroll-snap-align: start;
+    padding: 25px 20px;
+    border-radius: 20px;
+  }
+  
+  .info-card h3 {
+    font-size: 13px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .info-card h3::before {
+    content: '•';
+    font-size: 20px;
+    color: inherit;
+  }
+  
+  .info-card p {
+    font-size: 24px;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  
+  .info-icon {
+    font-size: 14px;
+  }
+  
+  /* Section Header Mobile */
   .section-header {
     flex-direction: column;
     align-items: stretch;
@@ -720,18 +1169,9 @@ h2 {
     width: 100%;
   }
   
-  .info-grid {
-    grid-template-columns: 1fr;
-  }
-  
   .button-group,
   .owner-controls {
     flex-direction: column;
-  }
-  
-  .account-info {
-    min-width: auto;
-    width: 100%;
   }
   
   section {
@@ -751,9 +1191,23 @@ h2 {
   }
 }
 
+/* Small Mobile (≤ 480px) */
 @media (max-width: 480px) {
-  .App-header h1 {
-    font-size: 22px;
+  .logo-wrapper {
+    width: 50px;
+    height: 50px;
+  }
+  
+  .title-container h1 {
+    font-size: 20px;
+  }
+  
+  .subtitle {
+    font-size: 12px;
+  }
+  
+  .account-info {
+    padding: 12px 15px;
   }
   
   .token-balance {
@@ -764,11 +1218,49 @@ h2 {
     font-size: 20px;
   }
   
-  h2 {
-    font-size: 20px;
+  .contract-address {
+    font-size: 11px;
+    flex-wrap: wrap;
+    justify-content: center;
+    text-align: center;
+    gap: 8px;
+  }
+  
+  .info-card {
+    min-width: 260px;
+    padding: 20px 15px;
   }
   
   .info-card p {
-    font-size: 18px;
+    font-size: 22px;
+  }
+}
+
+/* Swipe Indicators for Mobile */
+.swipe-indicators {
+  display: none;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 15px;
+  padding-bottom: 10px;
+}
+
+@media (max-width: 768px) {
+  .swipe-indicators {
+    display: flex;
+  }
+  
+  .indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ddd;
+    transition: all 0.3s ease;
+  }
+  
+  .indicator.active {
+    width: 24px;
+    border-radius: 10px;
+    background: linear-gradient(45deg, #667eea, #764ba2);
   }
 }
