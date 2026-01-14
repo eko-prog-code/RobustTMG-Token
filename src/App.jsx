@@ -1,25 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ethers } from 'ethers';
 import './App.css';
+import { CopyToClipboard } from 'react-copy-to-clipboard';
 
-// Contract ABI - Pastikan event Transfer ada dengan format yang benar
+// Icons (gunakan react-icons)
+import { FiCopy, FiSearch, FiRefreshCw } from 'react-icons/fi';
+
+// Contract ABI - TAMBAHKAN FUNGSI GETALLTOKENHOLDERS
 const contractABI = [
-  // Fungsi-fungsi view
   "function name() view returns (string)",
   "function symbol() view returns (string)",
   "function decimals() view returns (uint8)",
   "function totalSupply() view returns (uint256)",
   "function balanceOf(address) view returns (uint256)",
-  "function owner() view returns (address)",
-  "function paused() view returns (bool)",
-  "function taxFee() view returns (uint256)",
-  "function isBlacklisted(address) view returns (bool)",
-  
-  // Fungsi-fungsi write
   "function transfer(address to, uint256 amount) returns (bool)",
   "function approve(address spender, uint256 amount) returns (bool)",
   "function allowance(address owner, address spender) view returns (uint256)",
   "function transferFrom(address from, address to, uint256 amount) returns (bool)",
+  "function owner() view returns (address)",
+  "function paused() view returns (bool)",
+  "function taxFee() view returns (uint256)",
   "function setTaxFee(uint256 newTaxFee)",
   "function mint(address to, uint256 amount)",
   "function burn(uint256 amount)",
@@ -27,17 +27,60 @@ const contractABI = [
   "function unpause()",
   "function blacklist(address account)",
   "function unblacklist(address account)",
-  "function transferOwnership(address newOwner)",
-  
-  // Events - PENTING untuk MetaMask tracking
-  "event Transfer(address indexed from, address indexed to, uint256 value)",
-  "event Approval(address indexed owner, address indexed spender, uint256 value)"
+  "function isBlacklisted(address account) view returns (bool)",
+  "function getAllTokenHolders() view returns (address[], uint256[])", // TAMBAHKAN INI
+  "function getHoldersCount() view returns (uint256)", // TAMBAHKAN INI
+  "event Transfer(address indexed from, address indexed to, uint256 value)"
 ];
 
 // RPC Configuration
 const RPC_URL = "https://ethereum-sepolia.publicnode.com";
-// GANTI dengan alamat kontrak BARU setelah deploy ulang
-const CONTRACT_ADDRESS = "0xA82914604e7Df80EEEBbCA9bCE5c3Bc9fAF9B505";
+// GANTI DENGAN ALAMAT KONTRAK ANDA SETELAH DEPLOY
+const CONTRACT_ADDRESS = "0x9ef9a22599Cb4A8C75D20755256cC5F9a1E389D2";
+
+// Fungsi untuk memformat angka dengan pemisah ribuan
+const formatNumber = (num) => {
+  if (!num) return '0';
+  
+  // Jika input adalah string, konversi ke number
+  const number = typeof num === 'string' ? parseFloat(num) : num;
+  
+  // Pisah bagian integer dan desimal
+  const parts = number.toString().split('.');
+  const integerPart = parts[0];
+  const decimalPart = parts[1] || '';
+  
+  // Format integer part dengan pemisah ribuan
+  const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  
+  // Gabungkan dengan desimal jika ada
+  return decimalPart ? `${formattedInteger},${decimalPart}` : formattedInteger;
+};
+
+// Fungsi untuk memformat saldo dengan presisi tinggi
+const formatBalance = (balance, decimals = 4) => {
+  try {
+    if (!balance || balance === '0') return '0';
+    
+    const balanceNumber = parseFloat(balance);
+    
+    // Jika saldo sangat kecil (< 0.0001), tampilkan dengan notasi ilmiah
+    if (balanceNumber < 0.0001 && balanceNumber > 0) {
+      return balanceNumber.toExponential(6);
+    }
+    
+    // Untuk saldo normal, format dengan desimal
+    const options = {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: decimals,
+      useGrouping: true
+    };
+    
+    return balanceNumber.toLocaleString('id-ID', options);
+  } catch (error) {
+    return balance;
+  }
+};
 
 const App = () => {
   const [account, setAccount] = useState('');
@@ -56,9 +99,15 @@ const App = () => {
   });
   const [holders, setHolders] = useState([]);
   const [loadingHolders, setLoadingHolders] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [filteredHolders, setFilteredHolders] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [copiedAddress, setCopiedAddress] = useState(null);
+  const [showAllHolders, setShowAllHolders] = useState(false);
+  const [holdersCount, setHoldersCount] = useState(0);
+  
+  const eventListenerRef = useRef(null);
 
-  // Initialize provider
+  // Initialize provider dan load holders saat pertama kali
   useEffect(() => {
     const initProvider = async () => {
       try {
@@ -66,33 +115,6 @@ const App = () => {
         
         if (window.ethereum) {
           web3Provider = new ethers.BrowserProvider(window.ethereum);
-          try {
-            await window.ethereum.request({
-              method: 'wallet_switchEthereumChain',
-              params: [{ chainId: '0xaa36a7' }],
-            });
-          } catch (switchError) {
-            if (switchError.code === 4902) {
-              try {
-                await window.ethereum.request({
-                  method: 'wallet_addEthereumChain',
-                  params: [{
-                    chainId: '0xaa36a7',
-                    chainName: 'Sepolia',
-                    rpcUrls: [RPC_URL],
-                    nativeCurrency: {
-                      name: 'Sepolia ETH',
-                      symbol: 'ETH',
-                      decimals: 18
-                    },
-                    blockExplorerUrls: ['https://sepolia.etherscan.io']
-                  }]
-                });
-              } catch (addError) {
-                console.error("Failed to add Sepolia network:", addError);
-              }
-            }
-          }
         } else {
           web3Provider = new ethers.JsonRpcProvider(RPC_URL);
         }
@@ -105,13 +127,83 @@ const App = () => {
         );
         setContract(tokenContract);
         loadTokenInfo(tokenContract);
+        
+        // Load holders saat pertama kali (walau belum connect wallet)
+        await loadAllTokenHolders(tokenContract);
+        
       } catch (error) {
         console.error("Error initializing provider:", error);
       }
     };
     
     initProvider();
+    
+    // Cleanup event listener
+    return () => {
+      if (eventListenerRef.current && window.ethereum) {
+        window.ethereum.removeListener('accountsChanged', eventListenerRef.current);
+        window.ethereum.removeListener('chainChanged', eventListenerRef.current);
+      }
+    };
   }, []);
+
+  // Setup event listener untuk perubahan akun dan saldo
+  useEffect(() => {
+    if (window.ethereum && contract && account) {
+      const handleAccountsChanged = async (accounts) => {
+        if (accounts.length > 0) {
+          setAccount(accounts[0]);
+          await loadBalance(accounts[0], contract);
+          
+          // Check if still owner
+          const ownerAddress = await contract.owner();
+          setIsOwner(ownerAddress.toLowerCase() === accounts[0].toLowerCase());
+        } else {
+          setAccount('');
+          setBalance('0');
+          setIsOwner(false);
+        }
+      };
+
+      const handleChainChanged = () => {
+        window.location.reload();
+      };
+
+      // Listen untuk Transfer event untuk update real-time
+      const transferFilter = contract.filters.Transfer();
+      contract.on(transferFilter, async (from, to, value) => {
+        console.log('Transfer event detected:', { from, to, value });
+        
+        // Refresh balance jika user terlibat
+        if (account && (from.toLowerCase() === account.toLowerCase() || 
+            to.toLowerCase() === account.toLowerCase())) {
+          await loadBalance(account, contract);
+        }
+        
+        // Refresh holders list
+        await loadAllTokenHolders(contract);
+      });
+
+      // Setup event listeners
+      window.ethereum.on('accountsChanged', handleAccountsChanged);
+      window.ethereum.on('chainChanged', handleChainChanged);
+      
+      eventListenerRef.current = handleAccountsChanged;
+    }
+  }, [contract, account]);
+
+  // Filter holders berdasarkan search term
+  useEffect(() => {
+    if (searchTerm.trim() === '') {
+      setFilteredHolders(holders);
+    } else {
+      const filtered = holders.filter(holder =>
+        holder.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        holder.formattedAddress.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setFilteredHolders(filtered);
+    }
+  }, [searchTerm, holders]);
 
   const loadTokenInfo = async (contractInstance) => {
     try {
@@ -129,6 +221,93 @@ const App = () => {
       });
     } catch (error) {
       console.error("Error loading token info:", error);
+    }
+  };
+
+  // Fungsi untuk load semua token holders (bisa diakses publik)
+  const loadAllTokenHolders = async (contractInstance) => {
+    try {
+      setLoadingHolders(true);
+      
+      // Gunakan fungsi getAllTokenHolders dari smart contract
+      const [addresses, balances] = await contractInstance.getAllTokenHolders();
+      const decimals = await contractInstance.decimals();
+      
+      const holdersList = [];
+      
+      for (let i = 0; i < addresses.length; i++) {
+        const address = addresses[i];
+        const balanceWei = balances[i];
+        const balanceFormatted = ethers.formatUnits(balanceWei, decimals);
+        
+        holdersList.push({
+          address: address,
+          formattedAddress: `${address.substring(0, 6)}...${address.substring(address.length - 4)}`,
+          balance: balanceFormatted,
+          balanceFormatted: formatBalance(balanceFormatted, 4)
+        });
+      }
+      
+      // Urutkan dari saldo terbesar ke terkecil
+      holdersList.sort((a, b) => parseFloat(b.balance) - parseFloat(a.balance));
+      
+      setHolders(holdersList);
+      setFilteredHolders(holdersList);
+      
+      // Get holders count
+      const count = await contractInstance.getHoldersCount();
+      setHoldersCount(Number(count));
+      
+    } catch (error) {
+      console.error("Error loading token holders:", error);
+      // Fallback: coba load dari events jika fungsi tidak tersedia
+      await loadHoldersFromEvents(contractInstance);
+    } finally {
+      setLoadingHolders(false);
+    }
+  };
+
+  // Fallback function jika getAllTokenHolders tidak tersedia
+  const loadHoldersFromEvents = async (contractInstance) => {
+    try {
+      const filter = contractInstance.filters.Transfer();
+      const events = await contractInstance.queryFilter(filter, 0, 'latest');
+      
+      const balancesMap = new Map();
+      const decimals = await contractInstance.decimals();
+      
+      events.forEach(event => {
+        const { from, to, value } = event.args;
+        const valueNum = Number(ethers.formatUnits(value, decimals));
+        
+        if (from !== ethers.ZeroAddress) {
+          const fromBalance = balancesMap.get(from) || 0;
+          balancesMap.set(from, fromBalance - valueNum);
+        }
+        
+        const toBalance = balancesMap.get(to) || 0;
+        balancesMap.set(to, toBalance + valueNum);
+      });
+      
+      const holdersList = [];
+      balancesMap.forEach((balance, address) => {
+        if (balance > 0) {
+          holdersList.push({
+            address: address,
+            formattedAddress: `${address.substring(0, 6)}...${address.substring(address.length - 4)}`,
+            balance: balance.toFixed(4),
+            balanceFormatted: formatBalance(balance.toFixed(4), 4)
+          });
+        }
+      });
+      
+      holdersList.sort((a, b) => b.balance - a.balance);
+      setHolders(holdersList);
+      setFilteredHolders(holdersList);
+      setHoldersCount(holdersList.length);
+      
+    } catch (error) {
+      console.error("Error loading holders from events:", error);
     }
   };
 
@@ -167,13 +346,13 @@ const App = () => {
     try {
       const balance = await contractInstance.balanceOf(address);
       const decimals = await contractInstance.decimals();
-      setBalance(ethers.formatUnits(balance, decimals));
+      const formattedBalance = ethers.formatUnits(balance, decimals);
+      setBalance(formattedBalance);
     } catch (error) {
       console.error("Error loading balance:", error);
     }
   };
 
-  // ===== FUNGSI TRANSFER YANG DIPERBAIKI UNTUK META-MASK AUTO-UPDATE =====
   const handleTransfer = async (toOwner = false) => {
     try {
       if (!contract || !signer) {
@@ -194,142 +373,27 @@ const App = () => {
         return;
       }
       
-      setIsRefreshing(true);
       const tx = await contract.transfer(recipientAddress, amount);
-      const receipt = await tx.wait();
+      await tx.wait();
       
-      alert('Transfer successful! Transaction hash: ' + receipt.hash);
+      alert('Transfer successful!');
       
-      // PERBAIKAN 1: Refresh balance di frontend kita
+      // Refresh data setelah transfer
       await loadBalance(account, contract);
+      await loadAllTokenHolders(contract);
       
-      // PERBAIKAN 2: Paksa MetaMask untuk refresh saldo token
-      if (window.ethereum && window.ethereum.request) {
-        try {
-          // Method 1: Request MetaMask untuk watch asset (sering trigger refresh)
-          await window.ethereum.request({
-            method: 'wallet_watchAsset',
-            params: {
-              type: 'ERC20',
-              options: {
-                address: CONTRACT_ADDRESS,
-                symbol: 'TR',
-                decimals: 4,
-                image: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2/logo.png' // Optional logo
-              }
-            }
-          });
-          
-          // Method 2: Request account refresh (alternatif)
-          setTimeout(async () => {
-            try {
-              await window.ethereum.request({
-                method: 'wallet_requestPermissions',
-                params: [{ eth_accounts: {} }]
-              });
-            } catch (permError) {
-              console.log("Permission refresh optional:", permError);
-            }
-          }, 1000);
-          
-        } catch (watchError) {
-          console.log("MetaMask watchAsset skipped:", watchError);
-        }
-      }
-      
-      // PERBAIKAN 3: Tambahkan delay dan refresh ulang
-      setTimeout(async () => {
-        await loadBalance(account, contract);
-        setIsRefreshing(false);
-      }, 2000);
-      
-      // Clear form
       setTransferAmount('');
       if (!toOwner) setRecipient('');
       
     } catch (error) {
       console.error("Transfer error:", error);
       alert('Transfer failed: ' + error.message);
-      setIsRefreshing(false);
     }
   };
 
-  // Fungsi untuk manual refresh MetaMask saldo
-  const refreshMetaMaskBalance = async () => {
-    if (!window.ethereum || !account) return;
-    
-    try {
-      // Method 1: Panggil wallet_watchAsset untuk refresh
-      await window.ethereum.request({
-        method: 'wallet_watchAsset',
-        params: {
-          type: 'ERC20',
-          options: {
-            address: CONTRACT_ADDRESS,
-            symbol: 'TR',
-            decimals: 4
-          }
-        }
-      });
-      
-      // Method 2: Refresh balance kita juga
-      await loadBalance(account, contract);
-      
-      alert('MetaMask balance refresh requested!');
-    } catch (error) {
-      console.log("Refresh error:", error);
-    }
-  };
-
-  const loadTokenHolders = async () => {
-    try {
-      if (!contract || !isOwner) {
-        alert('Only owner can view token holders');
-        return;
-      }
-
-      setLoadingHolders(true);
-      setHolders([]);
-
-      const filter = contract.filters.Transfer();
-      const events = await contract.queryFilter(filter, 0, 'latest');
-
-      const balancesMap = new Map();
-      const decimals = 4;
-
-      events.forEach(event => {
-        const { from, to, value } = event.args;
-        const valueNum = Number(ethers.formatUnits(value, decimals));
-
-        if (from !== ethers.ZeroAddress) {
-          const fromBalance = balancesMap.get(from) || 0;
-          balancesMap.set(from, fromBalance - valueNum);
-        }
-
-        const toBalance = balancesMap.get(to) || 0;
-        balancesMap.set(to, toBalance + valueNum);
-      });
-
-      const holdersList = [];
-      balancesMap.forEach((balance, address) => {
-        if (balance > 0) {
-          holdersList.push({
-            address: address,
-            balance: balance.toFixed(4)
-          });
-        }
-      });
-
-      holdersList.sort((a, b) => b.balance - a.balance);
-      setHolders(holdersList);
-      console.log('Holders loaded:', holdersList);
-
-    } catch (error) {
-      console.error("Error loading holders from events:", error);
-      alert('Gagal memuat daftar pemegang: ' + error.message);
-    } finally {
-      setLoadingHolders(false);
-    }
+  const handleCopyAddress = (address) => {
+    setCopiedAddress(address);
+    setTimeout(() => setCopiedAddress(null), 2000);
   };
 
   const handleMint = async () => {
@@ -349,7 +413,10 @@ const App = () => {
       await tx.wait();
       
       alert('Mint successful!');
+      
+      // Refresh data setelah mint
       await loadBalance(account, contract);
+      await loadAllTokenHolders(contract);
       
     } catch (error) {
       console.error("Mint error:", error);
@@ -374,7 +441,10 @@ const App = () => {
       await tx.wait();
       
       alert('Burn successful!');
+      
+      // Refresh data setelah burn
       await loadBalance(account, contract);
+      await loadAllTokenHolders(contract);
       
     } catch (error) {
       console.error("Burn error:", error);
@@ -382,10 +452,26 @@ const App = () => {
     }
   };
 
+  const handleRefreshHolders = async () => {
+    if (contract) {
+      await loadAllTokenHolders(contract);
+    }
+  };
+
   return (
     <div className="App">
       <header className="App-header">
-        <h1>Robusta Token Dashboard</h1>
+        <div className="header-left">
+          <h1>Robusta Token Dashboard</h1>
+          <p className="contract-address">
+            Contract: {CONTRACT_ADDRESS.substring(0, 10)}...{CONTRACT_ADDRESS.substring(CONTRACT_ADDRESS.length - 8)}
+            <CopyToClipboard text={CONTRACT_ADDRESS} onCopy={() => handleCopyAddress('contract')}>
+              <button className="copy-btn small">
+                <FiCopy /> Copy
+              </button>
+            </CopyToClipboard>
+          </p>
+        </div>
         
         <div className="wallet-section">
           {!account ? (
@@ -395,22 +481,20 @@ const App = () => {
           ) : (
             <div className="account-info">
               <div className="status-badge">
-                {isOwner ? '👑 Owner' : '👤 Akun Tamu'}
+                {isOwner ? '👑 Owner' : '👤 User'}
               </div>
               <p className="account-address">
-                Account: {account.substring(0, 6)}...{account.substring(account.length - 4)}
+                {account.substring(0, 6)}...{account.substring(account.length - 4)}
+                <CopyToClipboard text={account} onCopy={() => handleCopyAddress(account)}>
+                  <button className="copy-btn">
+                    <FiCopy />
+                  </button>
+                </CopyToClipboard>
+                {copiedAddress === account && <span className="copied-text">Copied!</span>}
               </p>
               <p className="token-balance">
-                Your Balance: {balance} TR 
-                {isRefreshing && <span className="refreshing-indicator"> (Refreshing...)</span>}
+                Balance: <span className="balance-amount">{formatBalance(balance, 4)}</span> TR
               </p>
-              <button 
-                onClick={refreshMetaMaskBalance} 
-                className="refresh-btn"
-                title="Force refresh MetaMask balance"
-              >
-                🔄 Refresh MetaMask
-              </button>
             </div>
           )}
         </div>
@@ -430,11 +514,11 @@ const App = () => {
             </div>
             <div className="info-card">
               <h3>Total Supply</h3>
-              <p>{tokenInfo.totalSupply} TR</p>
+              <p>{formatNumber(tokenInfo.totalSupply)} TR</p>
             </div>
             <div className="info-card">
               <h3>Tax Fee</h3>
-              <p>{tokenInfo.taxFee} per transaction</p>
+              <p>{tokenInfo.taxFee} per transfer</p>
             </div>
           </div>
         </section>
@@ -462,24 +546,138 @@ const App = () => {
               <button 
                 onClick={() => handleTransfer(false)}
                 className="transfer-btn"
-                disabled={!account || isRefreshing}
+                disabled={!account}
               >
-                {isRefreshing ? 'Processing...' : 'Transfer to Address'}
+                Transfer to Address
               </button>
               <button 
                 onClick={() => handleTransfer(true)}
                 className="transfer-owner-btn"
-                disabled={!account || isRefreshing}
+                disabled={!account}
               >
-                {isRefreshing ? 'Processing...' : 'Transfer to Owner (with tax)'}
+                Transfer to Owner (with tax)
               </button>
             </div>
             <p className="tax-notice">
-              Note: All transfers include {tokenInfo.taxFee} tax fee to owner
+              Note: All transfers include {tokenInfo.taxFee} tax fee
             </p>
-            <p className="refresh-notice">
-              ⚡ After transfer, MetaMask should auto-update. If not, click "Refresh MetaMask" button above.
-            </p>
+          </div>
+        </section>
+
+        <section className="holders-section">
+          <div className="section-header">
+            <h2>Token Holders ({holdersCount})</h2>
+            <div className="controls">
+              <div className="search-box">
+                <FiSearch className="search-icon" />
+                <input
+                  type="text"
+                  placeholder="Filter by address..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="search-input"
+                />
+                {searchTerm && (
+                  <button 
+                    className="clear-search"
+                    onClick={() => setSearchTerm('')}
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+              <button 
+                onClick={handleRefreshHolders}
+                className="refresh-btn"
+                disabled={loadingHolders}
+              >
+                <FiRefreshCw className={loadingHolders ? 'spinning' : ''} />
+                Refresh
+              </button>
+            </div>
+          </div>
+          
+          {loadingHolders ? (
+            <div className="loading-container">
+              <div className="spinner"></div>
+              <p>Loading token holders...</p>
+            </div>
+          ) : filteredHolders.length > 0 ? (
+            <>
+              <div className="table-container">
+                <table className="holders-table">
+                  <thead>
+                    <tr>
+                      <th>Rank</th>
+                      <th>Address</th>
+                      <th>Balance (TR)</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(showAllHolders ? filteredHolders : filteredHolders.slice(0, 10)).map((holder, index) => (
+                      <tr key={holder.address}>
+                        <td className="rank">{index + 1}</td>
+                        <td className="address-cell">
+                          <span className="full-address" title={holder.address}>
+                            {holder.formattedAddress}
+                          </span>
+                          {holder.address.toLowerCase() === account?.toLowerCase() && (
+                            <span className="you-badge">(You)</span>
+                          )}
+                          {holder.address.toLowerCase() === tokenInfo.owner?.toLowerCase() && (
+                            <span className="owner-badge">(Owner)</span>
+                          )}
+                        </td>
+                        <td className="balance-cell">
+                          {holder.balanceFormatted}
+                        </td>
+                        <td className="actions-cell">
+                          <CopyToClipboard 
+                            text={holder.address} 
+                            onCopy={() => handleCopyAddress(holder.address)}
+                          >
+                            <button className="icon-btn copy">
+                              <FiCopy />
+                              {copiedAddress === holder.address && (
+                                <span className="tooltip">Copied!</span>
+                              )}
+                            </button>
+                          </CopyToClipboard>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              
+              {filteredHolders.length > 10 && (
+                <div className="show-more">
+                  <button 
+                    onClick={() => setShowAllHolders(!showAllHolders)}
+                    className="show-more-btn"
+                  >
+                    {showAllHolders ? 'Show Less' : `Show All (${filteredHolders.length})`}
+                  </button>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="no-data">
+              <p>No token holders found {searchTerm && `for "${searchTerm}"`}</p>
+              {searchTerm && (
+                <button 
+                  className="clear-filter-btn"
+                  onClick={() => setSearchTerm('')}
+                >
+                  Clear Filter
+                </button>
+              )}
+            </div>
+          )}
+          
+          <div className="holders-note">
+            <p>💡 Token holders list updates automatically after every transfer</p>
           </div>
         </section>
 
@@ -493,59 +691,16 @@ const App = () => {
               <button onClick={handleBurn} className="owner-btn burn-btn">
                 Burn Tokens
               </button>
-              <button 
-                onClick={loadTokenHolders} 
-                className="owner-btn holders-btn"
-                disabled={loadingHolders}
-              >
-                {loadingHolders ? 'Loading...' : 'View Token Holders'}
-              </button>
             </div>
-
-            {loadingHolders ? (
-              <div className="loading-message">
-                <p>Memuat daftar pemegang token...</p>
-              </div>
-            ) : holders.length > 0 ? (
-              <div className="holders-list">
-                <h3>Token Holders ({holders.length})</h3>
-                <div className="table-container">
-                  <table className="holders-table">
-                    <thead>
-                      <tr>
-                        <th>No</th>
-                        <th>Address</th>
-                        <th>Balance (TR)</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {holders.map((holder, index) => (
-                        <tr key={index}>
-                          <td>{index + 1}</td>
-                          <td title={holder.address}>
-                            {holder.address.substring(0, 10)}...{holder.address.substring(holder.address.length - 8)}
-                          </td>
-                          <td>{holder.balance}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            ) : (
-              <div className="no-holders-message">
-                <p>Belum ada data pemegang token. Coba klik "View Token Holders" setelah melakukan beberapa transfer.</p>
-              </div>
-            )}
           </section>
         )}
       </main>
 
       <footer className="App-footer">
         <p>Robusta Token (TR) • Sepolia Testnet</p>
-        <p>Max Supply: 7,000,000 TR • Decimals: 4</p>
+        <p>Max Supply: {formatNumber("7000000")} TR • Decimals: 4</p>
         <p className="footer-note">
-          Note: For immediate MetaMask balance updates, use the "Refresh MetaMask" button above.
+          Token holders are publicly accessible. Real-time updates on transfers.
         </p>
       </footer>
     </div>
